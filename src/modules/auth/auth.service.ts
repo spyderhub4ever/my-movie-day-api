@@ -1,7 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { IUser } from "../users/user.model";
+import { IUser } from "../user/user.model";
 import env from "../../config/env";
+import {
+  ACCESS_TOKEN_EXPIRES_IN,
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  REFRESH_TOKEN_EXPIRES_IN,
+} from "../../config/jwt";
 
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
@@ -15,12 +21,18 @@ export async function comparePassword(
   return bcrypt.compare(password, hash);
 }
 
-export function generateAccessToken(user: IUser) {
-  return jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, {
-    expiresIn: "15m",
-  });
-}
+export const generateTokens = (user: IUser) => {
+  const access_token = jwt.sign(
+    { id: user._id, role: user.role },
+    JWT_ACCESS_SECRET,
+    {
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    }
+  );
 
-export function generateRefreshToken(user: IUser) {
-  return jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: "7d" });
-}
+  const refresh_token = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+  });
+
+  return { access_token, refresh_token };
+};

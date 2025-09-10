@@ -1,14 +1,17 @@
-import { Response, Router } from "express";
-import { login, register } from "./auth.controller";
-import { authMiddleware, AuthRequest } from "./auth.middleware";
+import { Router } from "express";
+import { login, me, refresh, register } from "./auth.controller";
+import validate from "../../middlewares/validate";
+import { loginSchema, registerSchema } from "./auth.schema";
+import { authenticate } from "../../middlewares/auth";
 
 const router = Router();
 
-router.post("/register", register);
-router.post("/login", login);
+// NON - AUTHENTICATED
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
+router.post("/refresh", refresh);
 
-router.get("/me", authMiddleware, (req: AuthRequest, res: Response) => {
-  res.json({ user: req.user });
-});
+// AUTHENTICATED
+router.get("/me", authenticate, me);
 
 export default router;
