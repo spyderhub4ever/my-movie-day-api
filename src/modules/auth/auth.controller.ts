@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import UserModel from "../user/user.model";
 import { comparePassword, hashPassword, generateTokens } from "./auth.service";
 import { JWT_REFRESH_SECRET } from "../../config/jwt";
+import { uploadToCloudinary } from "../../services/cloudinary";
 
 export async function register(req: Request, res: Response) {
   try {
@@ -49,7 +50,7 @@ export async function login(req: Request, res: Response) {
   }
 }
 
-export const refresh = async (req: Request, res: Response) => {
+export async function refresh(req: Request, res: Response) {
   const refreshToken = req.cookies.refresh_token;
   if (!refreshToken) {
     return res.status(401).json({ message: "No refresh token" });
@@ -76,9 +77,9 @@ export const refresh = async (req: Request, res: Response) => {
   } catch {
     return res.status(401).json({ message: "Invalid refresh token" });
   }
-};
+}
 
-export async function me(req: Request, res: Response) {
+export async function getProfile(req: Request, res: Response) {
   try {
     const user = (req as any).user;
     if (!user) {
@@ -86,6 +87,43 @@ export async function me(req: Request, res: Response) {
     }
     return res.json({ user });
   } catch {
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function updateProfile(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user.id;
+    const { name, email, password, image } = req.body;
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (password) {
+      updateData.password = await hashPassword(password);
+    }
+
+    if (req.file) {
+      const imageUrl = await uploadToCloudinary(req.file.path, {
+        folder: "user_profiles",
+        width: 500,
+        height: 500,
+      });
+      updateData.image = imageUrl;
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({ user: updatedUser });
+  } catch (err) {
     return res.status(500).json({ message: "Server error" });
   }
 }

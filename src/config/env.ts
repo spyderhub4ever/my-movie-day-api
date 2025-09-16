@@ -9,6 +9,9 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "Cloudinary cloud name is required"),
+  CLOUDINARY_API_KEY: z.string().min(1, "Cloudinary API key is required"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "Cloudinary API secret is required"),
 });
 
 const env = envSchema.parse(process.env);
